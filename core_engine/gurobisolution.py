@@ -252,7 +252,7 @@ def plot_routes(depot_coord, customer_coords, visit_order, best_path, V_locs):
 # ==========================================
 if __name__ == "__main__":
     
-    depot, customers, weights, V_locs = load_dataset("veri_seti.txt")
+    depot, customers, weights, V_locs = load_dataset("../data/veri_seti.txt")
     print(f"Sistemdeki Müşteri Sayısı: {len(customers)}")
 
     visit_order = solve_tsp_gurobi(customers, depot, drone_speed=10)

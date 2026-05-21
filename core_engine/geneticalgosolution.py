@@ -252,7 +252,7 @@ if __name__ == "__main__":
     
     try:
         # 1. ADIM: VERİYİ TXT'DEN OKU
-        depot, customers, weights, V_locs = load_dataset("veri_seti.txt")
+        depot, customers, weights, V_locs = load_dataset("../data/veri_seti.txt")
         print(f"Sistemdeki Müşteri Sayısı: {len(customers)}")
 
         # 2. ADIM: GENETİK ALGORİTMA İLE ROTAYI BUL
