@@ -1,3 +1,6 @@
 networkx==3.1
 gurobipy==11.0.1
 matplotlib==3.8.0
+fastapi==0.136.1
+uvicorn==0.47.0
+python-multipart==0.0.29

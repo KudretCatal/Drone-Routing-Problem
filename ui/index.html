@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>k-MVDRP Optimization Engine</title>
+    
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Leaflet CSS for Map -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    
+    <!-- Vanilla CSS -->
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar / Controls -->
+        <aside class="glass-panel sidebar">
+            <div class="header">
+                <h1 data-i18n="title">Optimization Engine</h1>
+                <div class="lang-toggle">
+                    <button id="btn-en" class="active">EN</button>
+                    <button id="btn-tr">TR</button>
+                </div>
+            </div>
+
+            <form id="opt-form">
+                <div class="form-group">
+                    <label for="algorithm" data-i18n="algorithm">Algorithm</label>
+                    <select id="algorithm" name="algorithm">
+                        <option value="gurobi">Gurobi (Exact)</option>
+                        <option value="genetic">Genetic Algorithm</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="droneCount" data-i18n="droneCount">Drone Count (k)</label>
+                    <input type="number" id="droneCount" value="3" min="1" max="8">
+                </div>
+
+                <div class="form-group">
+                    <label for="droneSpeed" data-i18n="droneSpeed">Drone Speed (m/s)</label>
+                    <input type="number" id="droneSpeed" value="10" min="5" max="30">
+                </div>
+
+                <div class="form-group">
+                    <label for="truckSpeed" data-i18n="truckSpeed">Truck Speed (m/s)</label>
+                    <input type="number" id="truckSpeed" value="5" min="1" max="20">
+                </div>
+
+                <div class="form-group">
+                    <label for="batteryLimit" data-i18n="batteryLimit">Battery Capacity (J)</label>
+                    <input type="number" id="batteryLimit" value="540000" step="10000">
+                </div>
+
+                <div class="form-group">
+                    <label for="datasetFile" data-i18n="datasetFile">Dataset (Optional TXT)</label>
+                    <input type="file" id="datasetFile" accept=".txt">
+                </div>
+
+                <button type="submit" id="run-btn" class="primary-btn">
+                    <span data-i18n="runBtn">Run Optimization</span>
+                    <div class="spinner hidden" id="loading-spinner"></div>
+                </button>
+            </form>
+            
+            <!-- Results Area -->
+            <div id="results-panel" class="results-panel hidden">
+                <h3 data-i18n="results">Results</h3>
+                <div class="result-item">
+                    <span data-i18n="totalTime">Total Operation Time:</span>
+                    <strong id="res-time">0.00 s</strong>
+                </div>
+                <div class="result-details" id="res-details">
+                    <!-- Dynamic details injected here -->
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content / Map -->
+        <main class="main-content">
+            <div id="map" class="glass-panel map-container">
+                <!-- Leaflet map will be rendered here -->
+            </div>
+        </main>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>

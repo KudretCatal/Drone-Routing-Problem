@@ -1,3 +1,4 @@
+import os
 import math
 import random
 import networkx as nx
@@ -246,6 +247,60 @@ def plot_routes(depot_coord, customer_coords, visit_order, best_path, V_locs):
     plt.show()
 
 # ==========================================
+# API INTEGRATION
+# ==========================================
+def api_solve(drone_count, drone_speed, truck_speed, battery_limit, dataset_path=None):
+    if not dataset_path:
+        dataset_path = os.path.join(os.path.dirname(__file__), "../data/veri_seti.txt")
+    depot, customers, weights, V_locs = load_dataset(dataset_path)
+    visit_order = solve_tsp_ga(
+        customer_coords=customers, 
+        depot_coord=depot, 
+        pop_size=150, 
+        generations=400
+    )
+    
+    total_time, best_path, RouteGraph = run_rts_algorithm(
+        visit_order=visit_order,
+        V_locations=V_locs,
+        customer_coords=customers,
+        customer_weights=weights,
+        k=drone_count, 
+        EMAX=battery_limit, 
+        drone_speed=drone_speed,
+        truck_speed=truck_speed
+    )
+    
+    if total_time:
+        steps = []
+        truck_route_coords = []
+        for i in range(len(best_path)-1):
+            kalkis_dugumu = best_path[i]
+            varis_dugumu = best_path[i+1]
+            kamyon_kalkis = kalkis_dugumu[0]
+            kamyon_varis = varis_dugumu[0]
+            truck_route_coords.append(V_locs[kamyon_kalkis])
+            if i == len(best_path)-2:
+                truck_route_coords.append(V_locs[kamyon_varis])
+            kenar_bilgisi = RouteGraph.get_edge_data(kalkis_dugumu, varis_dugumu)
+            steps.append({
+                "from": kamyon_kalkis,
+                "to": kamyon_varis,
+                "details": kenar_bilgisi['details']
+            })
+            
+        return {
+            "total_time": total_time,
+            "steps": steps,
+            "depot": depot,
+            "customers": customers,
+            "visit_order": visit_order,
+            "truck_route": truck_route_coords
+        }
+    else:
+        raise Exception("Optimization failed, constraints not met.")
+
+# ==========================================
 # ANA ÇALIŞTIRMA BLOĞU
 # ==========================================
 if __name__ == "__main__":
@@ -277,9 +332,9 @@ if __name__ == "__main__":
         
         if total_time:
             print("\n" + "="*75)
-            print(f"✅ İŞLEM TAMAM (GENETİK ALGORİTMA): Toplam Operasyon Süresi = {total_time:.2f} saniye")
+            print(f"[BASARILI] ISLEM TAMAM (GENETIK ALGORITMA): Toplam Operasyon Suresi = {total_time:.2f} saniye")
             print("="*75)
-            print("📍 OPERASYON VE SEÇİLEN DRONE TİPİ DETAYLARI:")
+            print("[BILGI] OPERASYON VE SECILEN DRONE TIPI DETAYLARI:")
             
             for i in range(len(best_path)-1):
                 kalkis_dugumu = best_path[i]
@@ -292,7 +347,7 @@ if __name__ == "__main__":
                 yapilan_is = kenar_bilgisi['details']
                 
                 print(f"\nAdım {i+1}: Kamyon {kamyon_kalkis}. Duraktan -> {kamyon_varis}. Durağa Geçti.")
-                print(f"   └─> {yapilan_is}")
+                print(f"   --> {yapilan_is}")
                 
             print("\n" + "="*75)
             
@@ -300,7 +355,7 @@ if __name__ == "__main__":
             plot_routes(depot, customers, visit_order, best_path, V_locs)
             
         else:
-            print("\n❌ HATA: Drone'ların bataryası veya kapasitesi bu rotayı tamamlamaya yetmedi.")
+            print("\n[HATA] Drone'larin bataryasi veya kapasitesi bu rotayi tamamlamaya yetmedi.")
             
     except FileNotFoundError:
-        print("\n❌ HATA: 'veri_seti.txt' dosyası kodla aynı klasörde bulunamadı!")
+        print("\n[HATA] 'veri_seti.txt' dosyasi kodla ayni klasorde bulunamadi!")

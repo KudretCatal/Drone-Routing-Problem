@@ -1,0 +1,245 @@
+1. Giriş
+Bu proje, örnek makalede yer alan k-Multi-Visit Drone Routing Problem (k-MVDRP) probleminin çözüm yöntemini geliştirmeyi amaçlamaktadır.
+Bu problemde:
+Bir truck (kamyon) ve k adet drone birlikte çalışır 
+Kamyon bir mobil depo gibi davranır (dronları taşıyan ve onlara yakıt sağlayıp yüklerini veren)
+Drone’lar müşterilere paket teslim eder 
+Drone’lar operasyon sonunda kamyona geri dönmek zorundadır 
+Amaç: 
+ Total route completion time’ı minimize etmeliyiz.
+Makaledeki çözüm yöntemi RTS (Route–Transform–Shortest Path) sezgisel bir çözüm algoritmasıdır. Ancak Phase 2’de kullanılan block partitioning yöntemi optimal değildir. (biz bu blok atamaya alternatif geliştiriyoruz)
+2. Projenin Amacı (Objective)
+Bu çalışmanın amacı:
+RTS algoritmasının Phase 2 aşamasını geliştirerek, block partitioning yerine IP-based assignment modeli kullanmaktır. (çünkü mevcut çözümde sistem müşterileri sadece visitorder  a göre dronlara paylaştırır ve bir operasyon içindeki en iyi dron-müşteri eşleşmesini her zaman bulamaz. Bunun nedeni normalde dronların enerji tüketimi taşıdıkları paketlerin ağırlığına göre değiştiği için hangi dronun hangi paketleri alacağı toplam süreyi doğrudan etkiliyor. Ama RTS de bu dikkate alınmamış.)
+Set partioning in amacı:
+Tüm olası drone-paket eşleşmelerinin (alt-rotaların) maliyetlerini önden hesaplatıp IP modeline sadece "Hangi alt-rotaları seçelim?" diye soran bir Küme Parçalama mantığı kurmak.
+3. RTS Algorithm Genel Yapısı
+RTS üç aşamadan oluşur:
+1 – Route:
+TSP (gezgin satıcı yöntemi: bir depodan başlayarak belirlenen tüm müşteri konumlarını tam bir kez ziyaret eden ve tekrar başlangıç noktasına dönen en kısa veya en düşük maliyetli rotayı bulmayı amaçlayan temel bir optimizasyon problemi) benzeri bir yöntem ile müşteri sırası (VisitOrder) oluşturulur:
+VisitOrder=[p0 ,p1 ,...,pn ,pn+1 ]
+Girdilerimiz:
+Müşteri koordinatları: C={c1 ,c2 ,...,cn } 
+Depot: v0  
+Drone hızı: droneSpeed 
+TSP Çözümü
+TSP aşağıdaki yöntemlerden biri ile çözülebilir:
+Nearest Neighbor + 2-opt (önerilen) 
+OR-Tools TSP solver 
+NetworkX tabanlı çözüm 
+Basit greedy heuristic 
+Exact çözüm zorunlu değildir. (Makalede Gurobi kullanılmış.)
+2 – Transform:
+Her operasyon bir edge (operasyon demek, sistemin bir durumdan diğerine geçmesi) olarak modellenir:
+(Bu aşamada Phase 1’de elde edilen VisitOrder kullanılarak operasyon grafiği oluşturulur. Her operasyon, graf üzerinde bir edge olarak temsil edilir. Bir edge şu şekilde tanımlanır:)
+edge(i1 ,j1 ,i2 ,j2 ) 
+Bu edge:
+başlangıç noktası: vi1  
+bitiş noktası: vi2  
+Operasyon başlamadan önce servis edilmiş müşteri sayısı: j1  
+Operasyon sonunda servis edilmiş müşteri sayısı: j2  
+Dolayısıyla bu edge içinde servis edilecek müşteri kümesi:
+Co ={pj1 +1 ,pj1 +2 ,...,pj2  }
+NOT= 
+An edge is feasible if:
+1. All customers are assigned (tüm müşterilere servis yapılmalı, her müşteriye yalnız 1 kez servis edilmeli)
+2. All drones satisfy energy constraint
+3. VisitOrder is respected
+3 – Shortest Path:
+Phase 3 aşamasında, Phase 2’de oluşturulan feasible operasyonlar kullanılarak bir directed graph oluşturulur. Her node, sistemin belirli bir launch/landing noktasında bulunduğu ve belirli sayıda müşterinin servis edildiği durumu temsil eder.
+v′(i,j) 
+Burada i, kamyon ve drone’ların bulunduğu launch/landing noktasını; 
+j, VisitOrder’a göre o ana kadar servis edilmiş müşteri sayısını ifade eder.
+Graph üzerinde Shortest Path algoritması çalıştırılır.
+Bu aşamanın çıktısı:
+Final rota 
+Toplam süre
+4. Mevcut Yöntemin Problemi
+Makaledeki Phase 2: Block Partitioning yapılması
+Sorunlar:
+Mesafeyi dikkate almaz 
+Paket ağırlığını dikkate almaz 
+Enerji tüketimini optimize etmez 
+Drone’lar arasında dengesiz dağılım oluşturur
+5. Önerilen Yöntem (Proposed Method)
+Yeni yapı:
+IP için:
+Route → IP-Based Assignment → Shortest Path 
+SP için:
+"Ön Hesaplama + Küme Parçalama
+Route→Feasible Sortie Generation→Set Partitioning IP→Shortest Path
+ Yani; Phase 1 aynı , Phase 3 aynı ; Sadece Phase 2 değiştiriliyor.
+6. Veri Üretim Kuralları (Data Generation)
+Makalede hazır veri yok bu yüzden aşağıdaki bilgiler kullanılarak veri seti oluşturulması gerekiyor.
+Koordinat Alanı
+x ∈ [0, 25000]y ∈ [0, 25000]
+25 km × 25 km alanda hizmet verilecek (dron uçuş ve truck yolculuk mesafe alanı)
+Customers (paket sayısı)
+Sayı: 25 veya 50 
+Konum: uniform random 
+Ağırlık: 0–2.3 kg (tek paket başına)
+Launch Locations (V)
+Sayı: 25 veya 50 (Kamyonun yol boyunca durabileceği, dronları fırlatabileceği-inebileceği uygun fiziksel konumların sayısıdır.)
+Konum: uniform random 
+Depot (başlangıç ve bitiş noktası-ana merkez, depo)
+V içinden rastgele seçilir 
+Önce |V| adet location oluştur
+Bu noktalar uniform random dağılımla üretilir
+V kümesinden 1 tanesi rastgele seçilir
+Bu nokta depot (   )  olarak atanır
+Hızlar
+truck_speed = 5 m/s 
+drone_speed = 10 veya 15 m/s 
+Drone Tipleri
+Quadrocopter (1 kg battery) -4lü
+Octocopter (10 kg battery) - 8li
+Energy Density (birim ağırlık başına depolanabilen enerji miktarıdır)
+540000 J/kg -ilk tip
+900000 J/kg -ikinci tip
+Drone Sayısı
+k=1,2,...,8 (her route için, drone sayısı 1den 8e kadar tek tek artırılarak test edilmiş.)
+Random Seed
+seed = 42 (rastgele sayı üretimini sabitleyen başlangıç değeri.)
+ Tekrarlanabilirlik için zorunlu
+7. Distance ve Time Hesaplama
+Distance:
+d(i,j)= 
+Truck time:
+tt(i,j)=d(i,j)/truckSpeed 
+Drone time:
+td(i,j)=d(i,j)/droneSpeed
+8. Energy Model
+Energy:
+Energy = Σ (energy_rate × distance) + hover_energy
+Hover Energy 
+HOV=e(0)×droneSpeed  (eğer drone teslimleri tamamladıysa ve bitiş noktasındaysa ama truck daha gelmediyse havada onu bekler. HOV bu sırada harcanan enerjidir)
+Battery Capacity
+EMAX =battery_mass×energy_density 
+9. Mathematical Model (IP Model)
+9.1 Decision Variables
+IP için:
+X     = 1 (eğer müşteri o drone a atanırsa) , X    =0 (aksi durumda)
+SP için:
+    ∈ (0,1) : eğer r aday rotasını seçersek 1, seçmezsek 0.
+Tmax     0    :En uzun uçuş süresi (darboğaz)
+9.2 Objective
+Min : T 
+ Amaç: operasyon süresini (yani en uzun drone uçuş süresi) minimize etmek
+T_max = max(truckTime, max(droneTimes))
+9.3 Constraints
+9.3.1. Assignment
+IP için:
+“Her müşteri yalnızca 1 drone’a atanır”
+a∑ X      =1 
+-c= customer, a= hangi drone, X= karar değişkeni
+SP için:
+“Her pakete (müşteri konumuna) bir drone gitmeli (set partitioning)”
+“Drone sayısı kısıtı. Seçilen rota sayısı, kamyondaki drone sayısını geçemez.”
+“Tmax tanımı: Eğer rota seçildiyse  = 1, o rotanın süresi de  .”
+-R: Geçerli aday rotaların listesi
+-k : Sahip olduğumuz drone sayısı
+ -  : r rotasının tamamlanma süresi (saniye cinsi)
+ - :    :eğer p paketi, r rotasındaysa 1, değilse 0 yazılan matris
+9.3.2. Time Constraint (SP için yazılmaz çünkü, alternatif rotalar bu kriterler düşünülerek hesaplandı ve bu kısıtlardan geçti.)
+IP için:
+T            ≥   truckTime 
+T        ≥ droneTime
+9.3.3. Energy Constraint (SP de aday rotalar çıkmadan önce bu kısıta göre filtreleme yapılmıştır)
+IP için:
+Energya ≤EMAX  
+10. Drone Route Construction
+Her drone için:
+route = [start] + assigned_customers + [end]
+......................................................................................................................................................
+11. Operation Cost
+T=       :max(truckTime,max(droneTimes))
+12. Pseudocode 
+13. Algorithm Flow
+1. VisitOrder oluştur2. Edge’leri oluştur3. Her edge için IP çöz4. Graph oluştur5. shortest path çalıştır6. Final route bul
+14. Output
+Final Solution
+total completion time 
+truck route 
+drone routes (sorties)
+Customer assignments
+Feasibility Status
+Operational Cost (Her edge/operation için hesaplanan maliyet)
+OperationCost=max(truckTime,Tmax )+LaunchPenalty
+Improvement
+Set Partitioning tabanlı yöntem, makaledeki RTS/block partitioning yaklaşımıyla karşılaştırılacak.
+Improvement= 
+DİĞER ALTERNATİF: SET PARTITIONING (KÜME PARÇALAMA)
+Çözüm: "Ön Hesaplama + Küme Parçalama" Mantığı
+1. Aşama: Aday Rotaları (Sortie) Üretmek
+Diyelim ki o anki operasyonda kamyon v1'den kalkıp v2'ye gidecek ve arada sadece 5 tane paket dağıtılacak.
+Kombinasyonları Çıkar: 5 paket için olası tüm alt-rotaları listeleyen bir döngü yazılır.
+Maliyetleri (Süre ve Enerji) Peşin Hesapla: Yazılım, bu üretilen her aday rotanın içine o uzun enerji formülünü (makalede verilen) sokacak . Ağırlık düştükçe değişen enerjiyi peşin peşin hesaplayacak.
+Filtrele (Ele): Eğer bir aday rotanın toplam enerji tüketimi drone'un bataryasından (EMAX) büyükse, o rota çöpe atılacak.
+Çıktı (R Kümesi): Elde kalan, bataryası yeten, süreleri (   ) belli olan tüm mantıklı "Aday Rotalar (R)" bir listeye kaydedilecek.
+2. Aşama: Tertemiz IP Modeli
+ Elimizde "Aday Rotalar" listesi var. Artık enerjiyle, ağırlıkla veya mesafeyle uğraşmayacağız. Şimdi soru şu: "Listedeki bu rotalardan en fazla k tanesini öyle bir seçelim ki, tüm paketler dağıtılsın ve en yavaş rotanın süresi (Tmax) az olsun."
+Parametreler (Önceden Hesaplanmış Veriler):
+R: Geçerli aday rotaların listesi
+k : Sahip olduğumuz drone sayısı
+: : r rotasının tamamlanma süresi (saniye cinsi)
+:    : eğer p paketi, r rotasındaysa 1, değilse 0 yazılan matris 
+Karar Değişkenleri: 
+     ∈ (0,1) : eğer r aday rotasını seçersek 1, seçmezsek 0.
+Tmax         :En uzun uçuş süresi (darboğaz)
+Amaç Fonksiyonu:
+Minimize: 
+Kısıtlar: 
+Her pakete (müşteri konumuna) bir drone gitmeli (set partitioning)
+Drone sayısı: Seçilen toplam rota sayısı, kamyondaki drone sayısını aşamaz.
+Tmax’ı tanımlama: eğer rota seçildiyse  = 1, o rotanın süresi .
+Tmax              
+Fiziksel Mantık + Pseudocode: 
+Adım 1:
+Kamyon bir buluşma noktasına geldi (v_i). Hedefi v_j noktası. Phase 1'den (VisitOrder) gelen ve bu iki nokta arasında dağıtılması gereken bir "Paketler Listesi" var (Örn: p_1, p_2, p_3, p_4, p_5). Elimizde de k adet tam şarjlı drone var.
+FONKSİYON İyileştirilmiş_Phase2_Kenar_Maliyeti_Bul(Kalkış_Noktası, İniş_Noktası, Paketler_Listesi, k, EMAX):
+  Kamyon_Süresi = tt(Kalkış_Noktası, İniş_Noktası)
+  Geçerli_Rotalar_Kümesi (R) = BOŞ LİSTE
+Adım 2:
+5 paketi kaç farklı şekilde gruplayabiliriz? Yazılım tüm ihtimalleri (alt-kümeleri) çıkarır.
+Tüm_Kombinasyonlar = Kombinasyon_Üret(Paketler_Listesi)
+HER BİR aday_rota İÇİN (Tüm_Kombinasyonlar içinde):
+Adım 3:
+Yazılımcı, ürettiği her "aday_rota" için o uzun enerji formülünü çalıştıracak. Drone'a paketleri yükleyecek, her durakta ağırlığı düşürerek enerjiyi toplayacak ve en son kamyona dönecek. Eğer toplam enerji EMAX'tan küçükse, bu rota mantıklıdır diyecek ve Geçerli_Rotalar_Kümesine (R) ekleyecek.
+Toplam_Enerji = Enerji_Hesapla(aday_rota, Kalkış_Noktası, İniş_Noktası)
+        Drone_Süresi = Süre_Hesapla(aday_rota, Kalkış_Noktası, İniş_Noktası)
+        # Hovering (Kamyonu havada bekleme) enerjisini ekle
+        EĞER Drone_Süresi < Kamyon_Süresi:
+            Bekleme_Süresi = Kamyon_Süresi - Drone_Süresi
+            Toplam_Enerji = Toplam_Enerji + (HOV * Bekleme_Süresi)
+        # Batarya yetiyorsa kataloğa ekle!
+        EĞER Toplam_Enerji <= EMAX:
+            R.ekle(aday_rota, Drone_Süresi)
+Adım 4:
+ Elimizdeki rotalardan en fazla k tanesini öyle seçeceğiz ki; tüm paketler dağıtılsın ve içlerinde en uzun sürenin zamanı minimum olsun.
+EĞER R boşsa veya tüm paketleri kapsayacak kadar rota çıkmadıysa:
+        DÖNDÜR "INFEASIBLE" (Bu operasyon imkansız, grafikte bu kenarı çizme!)
+    # IP MODELİNİ BAŞLAT (Gurobi, CPLEX veya PuLP kütüphanesi ile)
+    MODEL = Yeni IP_Modeli()
+    KARAR_DEĞİŞKENLERİ:
+        y[r] = {0 veya 1}  (r rotası seçildi mi?)
+        T_max = Sürekli Değişken (Darboğaz süresi)
+    AMAÇ FONKSİYONU:
+        Minimize(T_max)
+        
+    KISITLAR:
+        1. HER BİR paket İÇİN (Paketler_Listesi içinde):
+           Toplam(seçilen rotalardaki bu paket sayısı) == 1  # Her pakete 1 drone gitsin
+        2. Toplam(y[r]) <= k  # Kamyondaki drone sayısını aşamayız
+        3. HER BİR rota r İÇİN (R içinde):
+           T_max >= Süre(r) * y[r]  # Seçilen rotaların en uzunu T_max'ı belirler
+    ÇÖZÜM = MODEL.Çöz()
+Adım 5:
+IP modeli eşleştirme yaptı ve drone'ların maksimum işi ne kadar sürede bitireceğini () söyledi. Kuralımız:
+Bir operasyon; kamyon veya droneların en yavaş olanı kadar sürer .
+EĞER ÇÖZÜM bulunduysa:
+        Drone_Darboğazı = ÇÖZÜM.T_max
+        Operasyon_Süresi = MAKSİMUM(Kamyon_Süresi, Drone_Darboğazı)
+        # Eğer en az 1 drone kalktıysa kalkış cezasını ekle
+        EĞER Toplam(y[r]) > 0:
+            Operasyon_Süresi = Operasyon_Süresi + LaunchPenalty
+        DÖNDÜR Operasyon_Süresi (Phase 2 grafiğindeki kenar maliyeti bu sayıdır!)
