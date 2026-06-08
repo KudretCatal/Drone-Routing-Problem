@@ -125,7 +125,7 @@ def solve_tsp_ga(customer_coords, depot_coord, pop_size=250, generations=800):
 # 3. BLOK ATAMA VE SHORTEST PATH (DİNAMİK DRONE SEÇİMLİ)
 # ==========================================
 
-def run_rts_algorithm(visit_order, V_locations, customer_coords, customer_weights, k, EMAX, drone_speed, truck_speed):
+def run_rts_algorithm(visit_order, V_locations, customer_coords, customer_weights, k, EMAX, drone_speed, truck_speed, launch_penalty=0):
     print("Phase 2: Block Partitioning ve Enerji Hesabı Yapılıyor (Dinamik Drone Modeli Aktif)...")
     G = nx.DiGraph()
     total_customers = len(customer_coords)
@@ -190,7 +190,7 @@ def run_rts_algorithm(visit_order, V_locations, customer_coords, customer_weight
                         energy_used += dist_to_truck * get_energy_rate(0.0, selected_drone)
                         
                         drone_dist = dist_to_first + dist_between + dist_to_truck
-                        d_time = drone_dist / drone_speed
+                        d_time = drone_dist / drone_speed + launch_penalty
                         if d_time < truck_time:
                             hover_power = get_energy_rate(0.0, selected_drone) * drone_speed
                             energy_used += (truck_time - d_time) * hover_power
@@ -263,7 +263,7 @@ def plot_routes(depot_coord, customer_coords, visit_order, best_path, V_locs):
 # ==========================================
 # API INTEGRATION
 # ==========================================
-def api_solve(drone_count, drone_speed, truck_speed, battery_limit, dataset_path=None):
+def api_solve(drone_count, drone_speed, truck_speed, battery_limit, launch_penalty=0, dataset_path=None):
     if not dataset_path:
         dataset_path = os.path.join(os.path.dirname(__file__), "../data/veri_seti.txt")
     depot, customers, weights, V_locs = load_dataset(dataset_path)
@@ -279,12 +279,13 @@ def api_solve(drone_count, drone_speed, truck_speed, battery_limit, dataset_path
         V_locations=V_locs,
         customer_coords=customers,
         customer_weights=weights,
-        k=drone_count, 
-        EMAX=battery_limit, 
+        k=drone_count,
+        EMAX=battery_limit,
         drone_speed=drone_speed,
-        truck_speed=truck_speed
+        truck_speed=truck_speed,
+        launch_penalty=launch_penalty
     )
-    
+
     if total_time:
         steps = []
         truck_route_coords = []

@@ -1,0 +1,14 @@
+NAME Kagit_Uzeri_Test_Gercek_Olcek
+TYPE VRPTW
+VEHICLE
+NUMBER     CAPACITY
+1          500
+
+CUSTOMER
+CUST NO.  XCOORD.    YCOORD.    DEMAND   READY TIME  DUE DATE   SERVICE TIME
+
+    0        0          0       0.0        0       1000          0
+    1     3000       4000       1.0        0       1000         10
+    2     6000          0       0.5        0       1000         10
+    3        0       8000       1.5        0       1000         10
+    4     6000       8000       2.0        0       1000         10

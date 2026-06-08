@@ -6,6 +6,7 @@ const translations = {
         droneSpeed: "Drone Speed (m/s)",
         truckSpeed: "Truck Speed (m/s)",
         batteryLimit: "Battery Capacity (J)",
+        launchPenalty: "Launch Penalty (s)",
         runBtn: "Run Optimization",
         results: "Results",
         totalTime: "Total Operation Time",
@@ -61,6 +62,7 @@ const translations = {
         droneSpeed: "Drone Hızı (m/s)",
         truckSpeed: "Kamyon Hızı (m/s)",
         batteryLimit: "Batarya Kapasitesi (J)",
+        launchPenalty: "Kalkış Cezası (sn)",
         runBtn: "Optimizasyonu Başlat",
         results: "Sonuçlar",
         totalTime: "Toplam Operasyon Süresi",
@@ -307,6 +309,7 @@ function collectFormData(includeAlgorithm) {
     formData.append('droneSpeed', document.getElementById('droneSpeed').value);
     formData.append('truckSpeed', document.getElementById('truckSpeed').value);
     formData.append('batteryLimit', document.getElementById('batteryLimit').value);
+    formData.append('launchPenalty', document.getElementById('launchPenalty').value);
 
     const fileInput = document.getElementById('datasetFile');
     if (fileInput.files.length > 0) {

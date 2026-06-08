@@ -44,7 +44,7 @@ def _summarize(values):
     }
 
 
-def _run_batch_job(job_id, runs, droneCount, droneSpeed, truckSpeed, batteryLimit, dataset_path):
+def _run_batch_job(job_id, runs, droneCount, droneSpeed, truckSpeed, batteryLimit, launchPenalty, dataset_path):
     job = batch_jobs[job_id]
     process = psutil.Process(os.getpid())
 
@@ -62,7 +62,7 @@ def _run_batch_job(job_id, runs, droneCount, droneSpeed, truckSpeed, batteryLimi
             g_result = gurobisolution.api_solve(
                 drone_count=droneCount, drone_speed=droneSpeed,
                 truck_speed=truckSpeed, battery_limit=batteryLimit,
-                dataset_path=dataset_path
+                launch_penalty=launchPenalty, dataset_path=dataset_path
             )
             wall_end = time.perf_counter()
             cpu_after = process.cpu_times()
@@ -77,7 +77,7 @@ def _run_batch_job(job_id, runs, droneCount, droneSpeed, truckSpeed, batteryLimi
             e_result = geneticalgosolution.api_solve(
                 drone_count=droneCount, drone_speed=droneSpeed,
                 truck_speed=truckSpeed, battery_limit=batteryLimit,
-                dataset_path=dataset_path
+                launch_penalty=launchPenalty, dataset_path=dataset_path
             )
             wall_end = time.perf_counter()
             cpu_after = process.cpu_times()
@@ -117,6 +117,7 @@ async def optimize(
     droneSpeed: int = Form(...),
     truckSpeed: int = Form(...),
     batteryLimit: int = Form(...),
+    launchPenalty: float = Form(0),
     file: UploadFile = File(None)
 ):
     # Save uploaded file temporarily if provided
@@ -139,6 +140,7 @@ async def optimize(
                 drone_speed=droneSpeed,
                 truck_speed=truckSpeed,
                 battery_limit=batteryLimit,
+                launch_penalty=launchPenalty,
                 dataset_path=dataset_path
             )
         elif algorithm == 'genetic':
@@ -147,6 +149,7 @@ async def optimize(
                 drone_speed=droneSpeed,
                 truck_speed=truckSpeed,
                 battery_limit=batteryLimit,
+                launch_penalty=launchPenalty,
                 dataset_path=dataset_path
             )
         else:
@@ -162,6 +165,7 @@ async def compare(
     droneSpeed: int = Form(...),
     truckSpeed: int = Form(...),
     batteryLimit: int = Form(...),
+    launchPenalty: float = Form(0),
     file: UploadFile = File(None)
 ):
     # Save uploaded file temporarily if provided
@@ -178,6 +182,7 @@ async def compare(
             drone_speed=droneSpeed,
             truck_speed=truckSpeed,
             battery_limit=batteryLimit,
+            launch_penalty=launchPenalty,
             dataset_path=dataset_path
         )
 
@@ -187,6 +192,7 @@ async def compare(
             drone_speed=droneSpeed,
             truck_speed=truckSpeed,
             battery_limit=batteryLimit,
+            launch_penalty=launchPenalty,
             dataset_path=dataset_path
         )
 
@@ -212,6 +218,7 @@ async def compare_batch(
     droneSpeed: int = Form(...),
     truckSpeed: int = Form(...),
     batteryLimit: int = Form(...),
+    launchPenalty: float = Form(0),
     runs: int = Form(...),
     file: UploadFile = File(None)
 ):
@@ -240,7 +247,7 @@ async def compare_batch(
     # lets the UI poll for live progress without blocking the request.
     thread = threading.Thread(
         target=_run_batch_job,
-        args=(job_id, runs, droneCount, droneSpeed, truckSpeed, batteryLimit, dataset_path),
+        args=(job_id, runs, droneCount, droneSpeed, truckSpeed, batteryLimit, launchPenalty, dataset_path),
         daemon=True
     )
     thread.start()
