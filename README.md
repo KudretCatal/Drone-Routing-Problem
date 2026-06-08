@@ -4,6 +4,8 @@ Bu proje, k-Multi-Visit Drone Routing Problem (k-MVDRP) probleminin çözümüne
 
 Sistem, bir kamyon (mobil depo) ve k adet drone'un işbirliği yaparak, belirli müşterilere teslimatları en kısa sürede, drone enerji ve batarya limitlerini gözeterek tamamlamasını hedefler.
 
+> 📘 **Projeyi sıfırdan mı keşfediyorsunuz?** Sistemin tam olarak nasıl çalıştığını (hem teknik hem sade dille, baştan sona analiz edilmiş şekilde) anlatan rehbere göz atın → [📖 Proje Nasıl Çalışıyor? — Detaylı Analiz ve Anlatım](docs/PROJE-NASIL-CALISIYOR.md)
+
 ## ✨ Özellikler
 
 - **Gelişmiş Çözücüler:** Gurobi (Exact Optimizer) veya Genetik Algoritma (Heuristic) seçeneği.
