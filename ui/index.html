@@ -64,6 +64,11 @@
                     <span data-i18n="runBtn">Run Optimization</span>
                     <div class="spinner hidden" id="loading-spinner"></div>
                 </button>
+
+                <button type="button" id="compare-btn" class="secondary-btn">
+                    <span data-i18n="compareBtn">Compare Both Algorithms</span>
+                    <div class="spinner hidden" id="compare-spinner"></div>
+                </button>
             </form>
             
             <!-- Results Area -->
@@ -81,8 +86,27 @@
 
         <!-- Main Content / Map -->
         <main class="main-content">
-            <div id="map" class="glass-panel map-container">
-                <!-- Leaflet map will be rendered here -->
+            <div id="single-view" class="view-container">
+                <div id="map" class="glass-panel map-container">
+                    <!-- Leaflet map will be rendered here -->
+                </div>
+            </div>
+
+            <!-- Side-by-side comparison view -->
+            <div id="compare-view" class="view-container compare-view hidden">
+                <div class="compare-maps">
+                    <div class="compare-map-panel">
+                        <h3 class="compare-map-title gurobi-color" data-i18n="algoGurobi">Gurobi (Exact)</h3>
+                        <div id="map-gurobi" class="glass-panel map-container"></div>
+                    </div>
+                    <div class="compare-map-panel">
+                        <h3 class="compare-map-title genetic-color" data-i18n="algoGenetic">Genetic Algorithm</h3>
+                        <div id="map-genetic" class="glass-panel map-container"></div>
+                    </div>
+                </div>
+                <div id="compare-report" class="glass-panel compare-report">
+                    <!-- Detailed comparison report injected here -->
+                </div>
             </div>
         </main>
     </div>

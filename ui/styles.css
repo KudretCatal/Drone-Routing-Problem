@@ -173,6 +173,41 @@ body {
     transform: translateY(0);
 }
 
+.secondary-btn {
+    width: 100%;
+    background: white;
+    color: var(--text-main);
+    border: 1.5px solid var(--border-color);
+    padding: 1rem;
+    border-radius: 12px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: 0.75rem;
+}
+
+.secondary-btn:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+    transform: translateY(-2px);
+}
+
+.secondary-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.secondary-btn .spinner {
+    border: 3px solid rgba(16, 185, 129, 0.2);
+    border-top-color: var(--accent);
+}
+
 /* Loading Spinner */
 .spinner {
     width: 22px;
@@ -289,6 +324,14 @@ body {
     flex-grow: 1;
     display: flex;
     flex-direction: column;
+    min-height: 0;
+}
+
+.view-container {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
 }
 
 .map-container {
@@ -296,6 +339,103 @@ body {
     height: 100%;
     z-index: 1;
     overflow: hidden;
+}
+
+/* Comparison View */
+.compare-view {
+    gap: 1.5rem;
+}
+
+.compare-maps {
+    flex: 0 0 42%;
+    display: flex;
+    gap: 1.5rem;
+    min-height: 0;
+}
+
+.compare-map-panel {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    gap: 0.75rem;
+}
+
+.compare-map-title {
+    font-size: 1rem;
+    font-weight: 700;
+    text-align: center;
+}
+
+.gurobi-color {
+    color: var(--primary);
+}
+
+.genetic-color {
+    color: var(--accent);
+}
+
+.compare-report {
+    flex-grow: 1;
+    min-height: 0;
+    overflow-y: auto;
+    padding: 1.5rem 2rem;
+}
+
+.compare-report h3 {
+    font-size: 1.15rem;
+    margin-bottom: 1rem;
+}
+
+.compare-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9rem;
+}
+
+.compare-table th, .compare-table td {
+    text-align: center;
+    padding: 0.6rem 0.75rem;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.compare-table th {
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--text-muted);
+}
+
+.compare-table .metric-label {
+    text-align: left;
+    font-weight: 500;
+    color: var(--text-main);
+}
+
+.cell-winner {
+    font-weight: 700;
+    background: rgba(16, 185, 129, 0.08);
+    border-radius: 8px;
+}
+
+.compare-summary {
+    margin-top: 1.25rem;
+    padding-top: 1rem;
+    border-top: 1px dashed var(--border-color);
+    color: var(--text-muted);
+    font-size: 0.9rem;
+    line-height: 1.6;
+}
+
+.compare-summary h4 {
+    color: var(--text-main);
+    font-size: 0.95rem;
+    margin-bottom: 0.5rem;
+}
+
+.improvement-line {
+    margin-top: 0.5rem;
+    color: var(--text-main);
 }
 
 /* Custom Leaflet Grid Background */

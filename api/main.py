@@ -1,5 +1,6 @@
 from fastapi import FastAPI, HTTPException, UploadFile, File, Form
 from fastapi.middleware.cors import CORSMiddleware
+from concurrent.futures import ThreadPoolExecutor
 import shutil
 from pydantic import BaseModel
 import sys
@@ -65,6 +66,55 @@ async def optimize(
             raise HTTPException(status_code=400, detail="Invalid algorithm selected")
         
         return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/compare")
+async def compare(
+    droneCount: int = Form(...),
+    droneSpeed: int = Form(...),
+    truckSpeed: int = Form(...),
+    batteryLimit: int = Form(...),
+    file: UploadFile = File(None)
+):
+    # Save uploaded file temporarily if provided
+    dataset_path = os.path.join(os.path.dirname(__file__), '..', 'data', 'veri_seti.txt')
+    if file:
+        temp_path = os.path.join(os.path.dirname(__file__), '..', 'data', 'temp_veri_seti.txt')
+        with open(temp_path, "wb") as buffer:
+            shutil.copyfileobj(file.file, buffer)
+        dataset_path = temp_path
+
+    def run_gurobi():
+        return gurobisolution.api_solve(
+            drone_count=droneCount,
+            drone_speed=droneSpeed,
+            truck_speed=truckSpeed,
+            battery_limit=batteryLimit,
+            dataset_path=dataset_path
+        )
+
+    def run_genetic():
+        return geneticalgosolution.api_solve(
+            drone_count=droneCount,
+            drone_speed=droneSpeed,
+            truck_speed=truckSpeed,
+            battery_limit=batteryLimit,
+            dataset_path=dataset_path
+        )
+
+    try:
+        # Run both solvers concurrently so total wait time is max(gurobi, genetic) instead of their sum
+        with ThreadPoolExecutor(max_workers=2) as executor:
+            gurobi_future = executor.submit(run_gurobi)
+            genetic_future = executor.submit(run_genetic)
+            gurobi_result = gurobi_future.result()
+            genetic_result = genetic_future.result()
+
+        return {
+            "gurobi": gurobi_result,
+            "genetic": genetic_result
+        }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
