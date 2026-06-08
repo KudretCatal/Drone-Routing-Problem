@@ -11,6 +11,7 @@ Sistem, bir kamyon (mobil depo) ve k adet drone'un işbirliği yaparak, belirli 
 - **Dinamik Harita (Leaflet.js):** Kamyon rotaları ve Drone/TSP dağıtım ağlarının animasyonlu interaktif haritada çizimi.
 - **Dil Desteği (i18n):** Türkçe ve İngilizce anında geçiş desteği.
 - **Özel Veri Seti Desteği:** İsteğe bağlı olarak kendi koordinat txt dosyanızı web arayüzünden yükleyip sistemi çalıştırabilme esnekliği.
+- **Tek Tuşla Algoritma Karşılaştırması:** Gurobi ve Genetik Algoritma'yı tek tıklamayla eşzamanlı çalıştırıp sonuçları yan yana haritalarda ve detaylı bir raporla kıyaslama; isteğe bağlı olarak **N kez çalıştırıp ortalama alma** (CPU kullanımı dahil gerçek ölçümlere dayalı toplu kıyas raporu). Detaylar için → [📄 Karşılaştırma Özelliği Güncelleme Notları](docs/KARSILASTIRMA-GUNCELLEMELERI.md)
 
 ---
 
