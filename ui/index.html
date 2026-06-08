@@ -65,6 +65,11 @@
                     <div class="spinner hidden" id="loading-spinner"></div>
                 </button>
 
+                <div class="form-group compare-runs-group">
+                    <label for="compareRuns" data-i18n="compareRuns">Number of Runs (Average)</label>
+                    <input type="number" id="compareRuns" value="1" min="1" max="500">
+                </div>
+
                 <button type="button" id="compare-btn" class="secondary-btn">
                     <span data-i18n="compareBtn">Compare Both Algorithms</span>
                     <div class="spinner hidden" id="compare-spinner"></div>
@@ -109,6 +114,19 @@
                 </div>
             </div>
         </main>
+    </div>
+
+    <!-- Batch Comparison Progress Modal -->
+    <div id="batch-modal" class="modal-overlay hidden">
+        <div class="modal-box glass-panel">
+            <div class="spinner modal-spinner"></div>
+            <h3 data-i18n="batchModalTitle">Running Comparison…</h3>
+            <p id="batch-modal-progress">Run 1 / 50</p>
+            <p id="batch-modal-algo">Currently running: Gurobi</p>
+            <div class="modal-progress-track">
+                <div id="batch-modal-bar" class="modal-progress-bar"></div>
+            </div>
+        </div>
     </div>
 
     <!-- Scripts -->

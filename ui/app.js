@@ -32,7 +32,27 @@ const translations = {
         equal: "Equal",
         summaryTitle: "Summary",
         summaryText: (winner, pct) => `${winner} completed the operation ${pct}% faster than its counterpart, making it the more efficient choice for this scenario.`,
-        tie: "Both algorithms produced an identical total operation time for this scenario."
+        tie: "Both algorithms produced an identical total operation time for this scenario.",
+        compareRuns: "Number of Runs (Average)",
+        batchModalTitle: "Running Comparison…",
+        batchModalProgress: (current, total) => `Run ${current} / ${total}`,
+        batchModalAlgo: (algoName) => `Currently running: ${algoName}`,
+        batchReportTitle: (n) => `Batch Comparison Report — Average of ${n} Runs (Real Measured Data)`,
+        batchNoMapsNote: "Map visualization is skipped in batch/average mode because each run produces a different route. The statistics below are computed from the real results of every individual run — nothing here is simulated or estimated.",
+        avgTotalTime: "Avg. Total Operation Time (s)",
+        stdDevTotalTime: "Std. Deviation of Operation Time",
+        minTotalTime: "Best (Min) Operation Time (s)",
+        maxTotalTime: "Worst (Max) Operation Time (s)",
+        avgCpuTime: "Avg. CPU Time Consumed (s)",
+        avgWallTime: "Avg. Wall-Clock Run Time (s)",
+        winsLabel: (wins, total) => `${wins} / ${total} runs`,
+        winsMetric: "Runs Won (Lower Operation Time)",
+        batchSummaryTitle: "Overall Verdict (Based on Real Run Data)",
+        batchSummaryText: (winner, wins, total, pctTime, cpuWinner, pctCpu) =>
+            `Across ${total} real, independently executed runs, ${winner} produced the lower (better) total operation time in ${wins} of them, and its average operation time was ${pctTime}% lower than its counterpart's. ` +
+            `In terms of computational cost, ${cpuWinner} consumed on average ${pctCpu}% less CPU time per run. These figures are computed directly from the measured results of each run — no values were fabricated or estimated.`,
+        batchSummaryTie: "Both algorithms produced statistically identical average operation times across all runs — neither came out ahead based on the measured data.",
+        batchCpuTie: "Both algorithms consumed virtually identical amounts of CPU time on average."
     },
     tr: {
         title: "Optimizasyon Motoru",
@@ -67,7 +87,27 @@ const translations = {
         equal: "Eşit",
         summaryTitle: "Özet",
         summaryText: (winner, pct) => `${winner}, operasyonu rakibine göre %${pct} daha hızlı tamamladı ve bu senaryo için daha verimli seçenek oldu.`,
-        tie: "Her iki algoritma da bu senaryo için aynı toplam operasyon süresini üretti."
+        tie: "Her iki algoritma da bu senaryo için aynı toplam operasyon süresini üretti.",
+        compareRuns: "Çalıştırma Sayısı (Ortalama)",
+        batchModalTitle: "Karşılaştırma Çalışıyor…",
+        batchModalProgress: (current, total) => `Çalıştırma ${current} / ${total}`,
+        batchModalAlgo: (algoName) => `Şu anda çalışıyor: ${algoName}`,
+        batchReportTitle: (n) => `Toplu Karşılaştırma Raporu — ${n} Çalıştırmanın Ortalaması (Gerçek Ölçülmüş Veriler)`,
+        batchNoMapsNote: "Toplu/ortalama modda her çalıştırma farklı bir rota ürettiği için harita gösterimi atlanmıştır. Aşağıdaki istatistikler, her bir çalıştırmanın gerçek sonuçlarından hesaplanmıştır — hiçbir veri simüle edilmemiş veya tahmin edilmemiştir.",
+        avgTotalTime: "Ort. Toplam Operasyon Süresi (sn)",
+        stdDevTotalTime: "Operasyon Süresi Standart Sapması",
+        minTotalTime: "En İyi (Min.) Operasyon Süresi (sn)",
+        maxTotalTime: "En Kötü (Maks.) Operasyon Süresi (sn)",
+        avgCpuTime: "Ort. Tüketilen CPU Süresi (sn)",
+        avgWallTime: "Ort. Gerçek Zamanlı Çalışma Süresi (sn)",
+        winsLabel: (wins, total) => `${wins} / ${total} çalıştırma`,
+        winsMetric: "Kazanılan Çalıştırma (Daha Düşük Operasyon Süresi)",
+        batchSummaryTitle: "Genel Sonuç (Gerçek Çalıştırma Verilerine Dayalı)",
+        batchSummaryText: (winner, wins, total, pctTime, cpuWinner, pctCpu) =>
+            `${total} adet gerçek ve birbirinden bağımsız çalıştırma boyunca, ${winner} bunların ${wins} tanesinde daha düşük (daha iyi) toplam operasyon süresi üretti ve ortalama operasyon süresi rakibinden %${pctTime} daha düşük oldu. ` +
+            `Hesaplama maliyeti açısından ise ${cpuWinner}, çalıştırma başına ortalama %${pctCpu} daha az CPU süresi tüketti. Bu rakamlar doğrudan her çalıştırmanın ölçülen sonuçlarından hesaplanmıştır — hiçbir değer uydurulmamış veya tahmin edilmemiştir.`,
+        batchSummaryTie: "Her iki algoritma da tüm çalıştırmalar boyunca istatistiksel olarak aynı ortalama operasyon süresini üretti — ölçülen verilere göre hiçbiri öne çıkmadı.",
+        batchCpuTie: "Her iki algoritma da ortalamada neredeyse aynı miktarda CPU süresi tüketti."
     }
 };
 
@@ -77,6 +117,7 @@ let routeLayer = null;
 let mapGurobi = null, mapGenetic = null;
 let routeLayerGurobi = null, routeLayerGenetic = null;
 let lastComparisonData = null;
+let lastBatchSummary = null;
 
 // Generic Leaflet map factory (used for the single view and the comparison views)
 function createMap(containerId) {
@@ -111,8 +152,10 @@ function setLanguage(lang) {
     document.getElementById('btn-en').classList.toggle('active', lang === 'en');
     document.getElementById('btn-tr').classList.toggle('active', lang === 'tr');
 
-    // Re-render the comparison report in the newly selected language, if one is currently shown
-    if (lastComparisonData) {
+    // Re-render whichever comparison report is currently shown, in the newly selected language
+    if (lastBatchSummary) {
+        document.getElementById('compare-report').innerHTML = buildBatchComparisonReport(lastBatchSummary);
+    } else if (lastComparisonData) {
         document.getElementById('compare-report').innerHTML =
             buildComparisonReport(lastComparisonData.gurobi, lastComparisonData.genetic);
     }
@@ -385,47 +428,233 @@ function buildComparisonReport(gurobiData, geneticData) {
     `;
 }
 
+async function runSingleComparison() {
+    const compareView = document.getElementById('compare-view');
+    const singleView = document.getElementById('single-view');
+    const reportContainer = document.getElementById('compare-report');
+
+    const formData = collectFormData(false);
+    const response = await fetch('http://localhost:8000/api/compare', {
+        method: 'POST',
+        body: formData
+    });
+
+    if (!response.ok) throw new Error("API Error");
+
+    const data = await response.json();
+    lastComparisonData = data;
+    lastBatchSummary = null;
+
+    // Switch to comparison view
+    singleView.classList.add('hidden');
+    compareView.classList.remove('hidden');
+    document.getElementById('results-panel').classList.add('hidden');
+    document.querySelector('.compare-maps').classList.remove('hidden');
+
+    // Lazily initialize the comparison maps (Leaflet requires a visible container)
+    if (!mapGurobi) mapGurobi = createMap('map-gurobi');
+    if (!mapGenetic) mapGenetic = createMap('map-genetic');
+    mapGurobi.invalidateSize();
+    mapGenetic.invalidateSize();
+
+    routeLayerGurobi = drawRoutesOn(mapGurobi, routeLayerGurobi, data.gurobi);
+    routeLayerGenetic = drawRoutesOn(mapGenetic, routeLayerGenetic, data.genetic);
+
+    reportContainer.innerHTML = buildComparisonReport(data.gurobi, data.genetic);
+}
+
+// ---- Batch ("run N times and average") comparison ----
+
+function showBatchModal() {
+    document.getElementById('batch-modal').classList.remove('hidden');
+}
+
+function hideBatchModal() {
+    document.getElementById('batch-modal').classList.add('hidden');
+}
+
+function updateBatchModal(job) {
+    const t = translations[currentLang];
+    const algoName = job.current_algorithm === 'gurobi' ? t.algoGurobi
+                   : job.current_algorithm === 'genetic' ? t.algoGenetic
+                   : '…';
+    document.getElementById('batch-modal-progress').innerText = t.batchModalProgress(job.current_run, job.total_runs);
+    document.getElementById('batch-modal-algo').innerText = t.batchModalAlgo(algoName);
+
+    const pct = job.total_runs > 0 ? Math.round((job.current_run / job.total_runs) * 100) : 0;
+    document.getElementById('batch-modal-bar').style.width = pct + '%';
+}
+
+function pollBatchJob(jobId) {
+    return new Promise((resolve, reject) => {
+        const poll = async () => {
+            try {
+                const res = await fetch(`http://localhost:8000/api/compare-batch/status/${jobId}`);
+                if (!res.ok) throw new Error("Status check failed");
+                const job = await res.json();
+
+                updateBatchModal(job);
+
+                if (job.status === 'done') {
+                    resolve(job.summary);
+                } else if (job.status === 'error') {
+                    reject(new Error(job.error || 'Batch job failed'));
+                } else {
+                    setTimeout(poll, 1200);
+                }
+            } catch (err) {
+                reject(err);
+            }
+        };
+        poll();
+    });
+}
+
+function buildBatchComparisonReport(summary) {
+    const t = translations[currentLang];
+    const g = summary.gurobi;
+    const e = summary.genetic;
+    const n = summary.runs_count;
+
+    const rows = [
+        { label: t.avgTotalTime, key: 'average', metric: 'total_time', lowerIsBetter: true, decimals: 2 },
+        { label: t.minTotalTime, key: 'min', metric: 'total_time', lowerIsBetter: true, decimals: 2 },
+        { label: t.maxTotalTime, key: 'max', metric: 'total_time', lowerIsBetter: true, decimals: 2 },
+        { label: t.stdDevTotalTime, key: 'std_dev', metric: 'total_time', lowerIsBetter: true, decimals: 2 },
+        { label: t.avgCpuTime, key: 'average', metric: 'cpu_time', lowerIsBetter: true, decimals: 3 },
+        { label: t.avgWallTime, key: 'average', metric: 'wall_time', lowerIsBetter: true, decimals: 2 }
+    ];
+
+    let rowsHtml = '';
+    rows.forEach(row => {
+        const gVal = g[row.metric][row.key];
+        const eVal = e[row.metric][row.key];
+        let gWins = false, eWins = false;
+        if (gVal !== eVal) {
+            gWins = row.lowerIsBetter ? gVal < eVal : gVal > eVal;
+            eWins = row.lowerIsBetter ? eVal < gVal : eVal > gVal;
+        }
+        rowsHtml += `
+            <tr>
+                <td class="metric-label">${row.label}</td>
+                <td class="${gWins ? 'cell-winner gurobi-color' : ''}">${gVal.toFixed(row.decimals)}${gWins ? ' ✓' : ''}</td>
+                <td class="${eWins ? 'cell-winner genetic-color' : ''}">${eVal.toFixed(row.decimals)}${eWins ? ' ✓' : ''}</td>
+            </tr>
+        `;
+    });
+
+    // Wins row (how many of the N runs each algorithm produced the lower/better operation time)
+    let gWinsCell = '', eWinsCell = '';
+    if (g.wins !== e.wins) {
+        if (g.wins > e.wins) gWinsCell = 'cell-winner gurobi-color';
+        else eWinsCell = 'cell-winner genetic-color';
+    }
+    rowsHtml += `
+        <tr>
+            <td class="metric-label">${t.winsMetric}</td>
+            <td class="${gWinsCell}">${t.winsLabel(g.wins, n)}${gWinsCell ? ' ✓' : ''}</td>
+            <td class="${eWinsCell}">${t.winsLabel(e.wins, n)}${eWinsCell ? ' ✓' : ''}</td>
+        </tr>
+    `;
+
+    // Overall verdict — purely derived from the measured averages/wins above, nothing fabricated
+    let summaryHtml;
+    if (g.total_time.average === e.total_time.average && g.cpu_time.average === e.cpu_time.average) {
+        summaryHtml = `<p>${t.batchSummaryTie}</p><p>${t.batchCpuTie}</p>`;
+    } else {
+        const timeWinnerIsGurobi = g.total_time.average < e.total_time.average;
+        const timeWinnerName = timeWinnerIsGurobi ? t.algoGurobi : t.algoGenetic;
+        const timeWinnerWins = timeWinnerIsGurobi ? g.wins : e.wins;
+        const timeWinnerAvg = Math.min(g.total_time.average, e.total_time.average);
+        const timeLoserAvg = Math.max(g.total_time.average, e.total_time.average);
+        const pctTime = timeLoserAvg > 0 ? (((timeLoserAvg - timeWinnerAvg) / timeLoserAvg) * 100).toFixed(2) : '0.00';
+
+        const cpuWinnerIsGurobi = g.cpu_time.average < e.cpu_time.average;
+        const cpuWinnerName = cpuWinnerIsGurobi ? t.algoGurobi : t.algoGenetic;
+        const cpuWinnerAvg = Math.min(g.cpu_time.average, e.cpu_time.average);
+        const cpuLoserAvg = Math.max(g.cpu_time.average, e.cpu_time.average);
+        const pctCpu = cpuLoserAvg > 0 ? (((cpuLoserAvg - cpuWinnerAvg) / cpuLoserAvg) * 100).toFixed(2) : '0.00';
+
+        summaryHtml = `<p>${t.batchSummaryText(timeWinnerName, timeWinnerWins, n, pctTime, cpuWinnerName, pctCpu)}</p>`;
+    }
+
+    return `
+        <h3>${t.batchReportTitle(n)}</h3>
+        <div class="batch-note">${t.batchNoMapsNote}</div>
+        <table class="compare-table">
+            <thead>
+                <tr>
+                    <th>${t.metric}</th>
+                    <th class="gurobi-color">${t.algoGurobi}</th>
+                    <th class="genetic-color">${t.algoGenetic}</th>
+                </tr>
+            </thead>
+            <tbody>
+                ${rowsHtml}
+            </tbody>
+        </table>
+        <div class="compare-summary">
+            <h4>${t.batchSummaryTitle}</h4>
+            ${summaryHtml}
+        </div>
+    `;
+}
+
+async function runBatchComparison(runs) {
+    const compareView = document.getElementById('compare-view');
+    const singleView = document.getElementById('single-view');
+    const reportContainer = document.getElementById('compare-report');
+
+    const formData = collectFormData(false);
+    formData.append('runs', runs);
+
+    const startResponse = await fetch('http://localhost:8000/api/compare-batch', {
+        method: 'POST',
+        body: formData
+    });
+    if (!startResponse.ok) throw new Error("API Error");
+    const { job_id } = await startResponse.json();
+
+    showBatchModal();
+    let summary;
+    try {
+        summary = await pollBatchJob(job_id);
+    } finally {
+        hideBatchModal();
+    }
+
+    lastComparisonData = null;
+    lastBatchSummary = summary;
+
+    // Switch to comparison view, but hide the maps (an "average" run has no single route to draw)
+    singleView.classList.add('hidden');
+    compareView.classList.remove('hidden');
+    document.getElementById('results-panel').classList.add('hidden');
+    document.querySelector('.compare-maps').classList.add('hidden');
+
+    reportContainer.innerHTML = buildBatchComparisonReport(summary);
+}
+
 document.getElementById('compare-btn').addEventListener('click', async () => {
     const compareBtn = document.getElementById('compare-btn');
     const compareBtnText = document.querySelector('[data-i18n="compareBtn"]');
     const compareSpinner = document.getElementById('compare-spinner');
-    const singleView = document.getElementById('single-view');
-    const compareView = document.getElementById('compare-view');
-    const reportContainer = document.getElementById('compare-report');
+
+    const runsInput = document.getElementById('compareRuns');
+    const runs = Math.max(1, parseInt(runsInput.value, 10) || 1);
 
     compareBtn.disabled = true;
     compareBtnText.style.display = 'none';
     compareSpinner.classList.remove('hidden');
 
     try {
-        const formData = collectFormData(false);
-        const response = await fetch('http://localhost:8000/api/compare', {
-            method: 'POST',
-            body: formData
-        });
-
-        if (!response.ok) throw new Error("API Error");
-
-        const data = await response.json();
-        lastComparisonData = data;
-
-        // Switch to comparison view
-        singleView.classList.add('hidden');
-        compareView.classList.remove('hidden');
-        document.getElementById('results-panel').classList.add('hidden');
-
-        // Lazily initialize the comparison maps (Leaflet requires a visible container)
-        if (!mapGurobi) mapGurobi = createMap('map-gurobi');
-        if (!mapGenetic) mapGenetic = createMap('map-genetic');
-        mapGurobi.invalidateSize();
-        mapGenetic.invalidateSize();
-
-        routeLayerGurobi = drawRoutesOn(mapGurobi, routeLayerGurobi, data.gurobi);
-        routeLayerGenetic = drawRoutesOn(mapGenetic, routeLayerGenetic, data.genetic);
-
-        reportContainer.innerHTML = buildComparisonReport(data.gurobi, data.genetic);
-
+        if (runs <= 1) {
+            await runSingleComparison();
+        } else {
+            await runBatchComparison(runs);
+        }
     } catch (err) {
+        hideBatchModal();
         alert(translations[currentLang].error);
         console.error(err);
     } finally {
