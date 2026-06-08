@@ -7,6 +7,8 @@ const translations = {
         truckSpeed: "Truck Speed (m/s)",
         batteryLimit: "Battery Capacity (J)",
         launchPenalty: "Launch Penalty (s)",
+        popSize: "Population Size (GA)",
+        generations: "Generations (GA)",
         runBtn: "Run Optimization",
         results: "Results",
         totalTime: "Total Operation Time",
@@ -63,6 +65,8 @@ const translations = {
         truckSpeed: "Kamyon Hızı (m/s)",
         batteryLimit: "Batarya Kapasitesi (J)",
         launchPenalty: "Kalkış Cezası (sn)",
+        popSize: "Popülasyon Büyüklüğü (GA)",
+        generations: "Nesil Sayısı (GA)",
         runBtn: "Optimizasyonu Başlat",
         results: "Sonuçlar",
         totalTime: "Toplam Operasyon Süresi",
@@ -310,6 +314,8 @@ function collectFormData(includeAlgorithm) {
     formData.append('truckSpeed', document.getElementById('truckSpeed').value);
     formData.append('batteryLimit', document.getElementById('batteryLimit').value);
     formData.append('launchPenalty', document.getElementById('launchPenalty').value);
+    formData.append('popSize', document.getElementById('popSize').value);
+    formData.append('generations', document.getElementById('generations').value);
 
     const fileInput = document.getElementById('datasetFile');
     if (fileInput.files.length > 0) {

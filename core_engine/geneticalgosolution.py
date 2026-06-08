@@ -263,15 +263,15 @@ def plot_routes(depot_coord, customer_coords, visit_order, best_path, V_locs):
 # ==========================================
 # API INTEGRATION
 # ==========================================
-def api_solve(drone_count, drone_speed, truck_speed, battery_limit, launch_penalty=0, dataset_path=None):
+def api_solve(drone_count, drone_speed, truck_speed, battery_limit, launch_penalty=0, pop_size=250, generations=800, dataset_path=None):
     if not dataset_path:
         dataset_path = os.path.join(os.path.dirname(__file__), "../data/veri_seti.txt")
     depot, customers, weights, V_locs = load_dataset(dataset_path)
     visit_order = solve_tsp_ga(
         customer_coords=customers,
         depot_coord=depot,
-        pop_size=250,
-        generations=800
+        pop_size=pop_size,
+        generations=generations
     )
     
     total_time, best_path, RouteGraph = run_rts_algorithm(
