@@ -56,7 +56,7 @@ def load_dataset(filepath):
 # 2. GENETİK ALGORİTMA TSP MOTORU (PHASE 1)
 # ==========================================
 
-def solve_tsp_ga(customer_coords, depot_coord, pop_size=250, generations=800):
+def solve_tsp_ga(customer_coords, depot_coord, pop_size=250, generations=800, crossover_rate=0.85):
     """Gurobi bağımlılığı olmadan rotayı optimize eden Genetik Algoritma."""
     print("Phase 1: Genetik Algoritma çalışıyor, evrim başladı...")
 
@@ -98,17 +98,22 @@ def solve_tsp_ga(customer_coords, depot_coord, pop_size=250, generations=800):
             p1 = min(random.sample(scored, 3), key=lambda s: s[0])[1]
             p2 = min(random.sample(scored, 3), key=lambda s: s[0])[1]
 
-            start, end = sorted(random.sample(range(num_customers), 2))
-            child = [-1] * num_customers
-            child[start:end+1] = p1[start:end+1]
+            # Crossover, crossover_rate olasılığıyla uygulanır; aksi halde yavru,
+            # ebeveynin (p1) birebir kopyası olarak gelir (klasik GA davranışı).
+            if random.random() < crossover_rate:
+                start, end = sorted(random.sample(range(num_customers), 2))
+                child = [-1] * num_customers
+                child[start:end+1] = p1[start:end+1]
 
-            ptr = 0
-            child_set = set(child)
-            p2_filtered = [x for x in p2 if x not in child_set]
-            for i in range(num_customers):
-                if child[i] == -1:
-                    child[i] = p2_filtered[ptr]
-                    ptr += 1
+                ptr = 0
+                child_set = set(child)
+                p2_filtered = [x for x in p2 if x not in child_set]
+                for i in range(num_customers):
+                    if child[i] == -1:
+                        child[i] = p2_filtered[ptr]
+                        ptr += 1
+            else:
+                child = p1[:]
 
             if random.random() < 0.1:
                 idx1, idx2 = random.sample(range(num_customers), 2)
