@@ -30,6 +30,8 @@ const translations = {
         packagesDelivered: "Packages Delivered",
         quadUsage: "Quadrocopter Assignments",
         octoUsage: "Octocopter Assignments",
+        cpuTimeMetric: "CPU Time Consumed (s)",
+        wallTimeMetric: "Wall-Clock Run Time (s)",
         improvement: "Improvement",
         faster: "faster",
         equal: "Equal",
@@ -88,6 +90,8 @@ const translations = {
         packagesDelivered: "Teslim Edilen Paket",
         quadUsage: "Quadrocopter Görev Sayısı",
         octoUsage: "Octocopter Görev Sayısı",
+        cpuTimeMetric: "Tüketilen CPU Süresi (sn)",
+        wallTimeMetric: "Gerçek Zamanlı Çalışma Süresi (sn)",
         improvement: "İyileşme",
         faster: "daha hızlı",
         equal: "Eşit",
@@ -364,13 +368,22 @@ function buildComparisonReport(gurobiData, geneticData) {
     const gStats = analyzeResult(gurobiData);
     const eStats = analyzeResult(geneticData);
 
+    // Real measured timing comes directly on the result objects (set by the backend);
+    // fall back to 0 if a run didn't report it.
+    gStats.cpuTime = gurobiData.cpu_time || 0;
+    eStats.cpuTime = geneticData.cpu_time || 0;
+    gStats.wallTime = gurobiData.wall_time || 0;
+    eStats.wallTime = geneticData.wall_time || 0;
+
     const rows = [
         { label: t.totalTimeMetric, key: 'totalTime', lowerIsBetter: true, decimals: 2 },
         { label: t.stepCount, key: 'stepCount', lowerIsBetter: true, decimals: 0 },
         { label: t.truckDistance, key: 'totalDistance', lowerIsBetter: true, decimals: 1 },
         { label: t.packagesDelivered, key: 'totalPackages', lowerIsBetter: false, decimals: 0 },
         { label: t.quadUsage, key: 'quadCount', lowerIsBetter: false, decimals: 0 },
-        { label: t.octoUsage, key: 'octoCount', lowerIsBetter: false, decimals: 0 }
+        { label: t.octoUsage, key: 'octoCount', lowerIsBetter: false, decimals: 0 },
+        { label: t.cpuTimeMetric, key: 'cpuTime', lowerIsBetter: true, decimals: 3 },
+        { label: t.wallTimeMetric, key: 'wallTime', lowerIsBetter: true, decimals: 2 }
     ];
 
     let rowsHtml = '';

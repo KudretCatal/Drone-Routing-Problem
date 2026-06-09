@@ -1,6 +1,5 @@
 from fastapi import FastAPI, HTTPException, UploadFile, File, Form
 from fastapi.middleware.cors import CORSMiddleware
-from concurrent.futures import ThreadPoolExecutor
 import shutil
 from pydantic import BaseModel
 import sys
@@ -205,13 +204,22 @@ async def compare(
             dataset_path=dataset_path
         )
 
+    def measured(fn):
+        # Run sequentially with isolated CPU/wall-clock measurement (concurrent execution
+        # would contaminate per-algorithm CPU times since they share one process).
+        process = psutil.Process(os.getpid())
+        cpu_before = process.cpu_times()
+        wall_start = time.perf_counter()
+        result = fn()
+        wall_end = time.perf_counter()
+        cpu_after = process.cpu_times()
+        result["cpu_time"] = (cpu_after.user - cpu_before.user) + (cpu_after.system - cpu_before.system)
+        result["wall_time"] = wall_end - wall_start
+        return result
+
     try:
-        # Run both solvers concurrently so total wait time is max(gurobi, genetic) instead of their sum
-        with ThreadPoolExecutor(max_workers=2) as executor:
-            gurobi_future = executor.submit(run_gurobi)
-            genetic_future = executor.submit(run_genetic)
-            gurobi_result = gurobi_future.result()
-            genetic_result = genetic_future.result()
+        gurobi_result = measured(run_gurobi)
+        genetic_result = measured(run_genetic)
 
         return {
             "gurobi": gurobi_result,
