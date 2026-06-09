@@ -1,45 +1,72 @@
-# MERİÇ'S CONTRIBUTIONS TO THE PROJECT
+# My Contributions to the Project — Meriç Baş
 
-## Where the project started
+## Role on the Team
 
-The project began as two standalone Python scripts written by another contributor, serhat çatal: one that solved the routing problem with Gurobi (an exact mathematical solver) and one that solved it with a Genetic Algorithm. At that stage there was no backend server, no web interface, and no way to interact with the solvers other than running a script in a terminal and looking at printed output and a Matplotlib chart. Everything described below was added on top of that starting point.
+On this project, Kudret built the **core optimization engine** — the Gurobi exact solver and the Genetic Algorithm that actually solve the drone routing problem. My responsibility was to turn that engine into a complete, usable product. I designed and built the **user interface (UI/UX)**, developed the **FastAPI backend** that connects everything together, and made the **small adjustments inside the core engine** that were needed for it to work cleanly with the web layer.
 
-## Building the backend and turning the scripts into a real application
+In short: Kudret made the algorithms; I made them into an application that anyone can actually run, see, and compare through a browser.
 
-The first major thing Meriç did was take these two isolated scripts and turn them into an actual usable application. He built a backend server from scratch using FastAPI, set up cross-origin support so a browser-based interface could talk to it, and created the main optimization endpoint that lets a caller pick which algorithm to run, supply operational parameters such as drone count, drone speed, truck speed and battery limit, optionally upload a custom dataset file, and get back a structured result.
+## Where the Project Started
 
-To make the existing solver scripts usable from this server, he wrote a new integration function for each of the two engines. This function runs the full solving pipeline internally and converts the raw output — internal graph nodes, path objects, route data — into a clean, simple structure that a web frontend can directly read and display: total operation time, step-by-step truck movements, depot and customer coordinates, the planned visiting order, and the truck's route. He also made the dataset path configurable instead of hard-coded, which is what made the "upload your own dataset" feature possible later on.
+When I joined the development, the project was two standalone Python scripts — one solving the problem with Gurobi, one with a Genetic Algorithm. There was no server, no interface, and no way to interact with them other than running a script in a terminal and reading printed text or a Matplotlib chart. Everything I describe below is what I added on top of that starting point.
 
-While doing this, he also found and fixed a practical bug: the original scripts printed emoji characters and Turkish accented text directly to the console, which caused crashes or garbled output on Windows terminals that don't use UTF-8 by default. He replaced these with plain text equivalents so the backend could run reliably in the project's actual deployment environment.
+## 1. The FastAPI Backend
 
-On top of the new backend, he built the first version of the web interface essentially from the ground up — the page layout, the sidebar form where the user configures the run (algorithm choice, drone settings, dataset upload, language switch, run button with a loading spinner), the main map area, the JavaScript logic that submits the form to the server and renders the results, the interactive map built with Leaflet.js, and a full visual design written in plain CSS without relying on any external styling framework. He also added bilingual support so the interface could switch between English and Turkish, and rewrote the project's README to explain how to install, run, and use the new web-based version.
+I built the backend server from scratch using FastAPI. This is the layer that lets a web browser talk to the Python solvers. It includes:
 
-## Designing and building the algorithm comparison feature
+- A main **optimization endpoint** where the user picks an algorithm and supplies the operational parameters — drone count, drone and truck speed, battery limit — and gets back a structured result.
+- **File upload support**, so users can optionally upload their own dataset instead of using the default one.
+- **CORS configuration**, so the browser-based interface is allowed to communicate with the server.
+- A **comparison endpoint** that runs both algorithms and returns their results together.
+- A **batch-comparison endpoint** that runs both algorithms many times in a background thread, with a separate status endpoint the interface polls for live progress.
 
-Once the basic application was working, Meriç designed and implemented an entirely new feature: the ability to run both algorithms on the same problem and compare them directly, rather than having to run them one at a time and compare the results manually.
+## 2. The Integration Layer (core engine ↔ backend)
 
-The first part of this was visual — he added a dedicated comparison view to the interface with two side-by-side maps (one showing the Gurobi result, one showing the Genetic Algorithm result, each clearly labeled and color-coded) and a report area underneath where the comparison details would appear.
+The original solver scripts produced raw internal data — graph nodes, path objects, internal route structures — that a web frontend cannot read directly. So inside each solver I wrote an **`api_solve` integration function** that runs the full solving pipeline and converts the raw output into a clean, simple structure the frontend can render: total operation time, step-by-step truck movements, depot and customer coordinates, the visiting order, and the truck's route.
 
-He then built the actual mechanism behind it. On the server side, he created an endpoint that runs both solvers concurrently — using a thread pool so the user only waits as long as the slower of the two algorithms takes, instead of waiting for both one after another — and returns both results together. On the client side, he wrote the logic that takes these two results, draws them onto the two separate maps, and builds a detailed comparison report: total operation time, number of truck stops, total distance traveled, number of packages delivered, how the work was split between drone types, which algorithm performed better, and by how much.
+I also made the **dataset path configurable** instead of hard-coded, which is what made the "upload your own dataset" feature possible.
 
-Going further, he designed and built a second, more rigorous comparison mode: running both algorithms a chosen number of times in a row and averaging the results. Because the Genetic Algorithm involves randomness, a single run can be misleading — this mode addresses that. He added an input field where the user specifies how many runs to perform, and built a background job system: the server starts the runs in a separate thread, the interface polls it periodically for progress, and a progress modal shows the user a live "run X of N" counter along with which algorithm is currently executing and an animated progress bar, so the user gets clear feedback during what can be a long wait.
+## 3. The Web Interface (UI/UX)
 
-Importantly, he made sure the statistics produced by this mode are based on real, measured data rather than estimates: he used actual process-level CPU time measurements and wall-clock timers to record, for every single run, how much processor time and how much real time each algorithm consumed, as well as the quality of the solution it found. From these raw measurements he computed averages, minimums, maximums, standard deviations, and how many runs each algorithm "won" — giving an honest, statistically grounded basis for saying which algorithm is actually better and under what respect (solution quality, speed, or CPU efficiency).
+I designed and built the entire web interface from the ground up, using **plain HTML, CSS, and JavaScript with no external UI framework**. It includes:
 
-## Tuning and optimizing the Genetic Algorithm
+- A sidebar form where the user configures the run — algorithm choice, drone settings, battery limit, dataset upload, and a run button with a loading spinner.
+- An **interactive map** built with Leaflet.js that draws the depot, customers, the drone visiting order, and the truck's physical route.
+- A complete **visual design** written in vanilla CSS (glassmorphism style, dark/light friendly), with no dependency on any styling library.
+- **Bilingual support (English / Turkish)** that switches the entire interface instantly and re-renders the active report in the chosen language.
 
-Meriç also went back into the Genetic Algorithm engine itself and improved it on two fronts at once. First, he increased its solution quality by giving it a larger population and letting it run for more generations, so it would explore more candidate routes and refine them further before settling on a final answer. Second — and this is the more technically interesting part — he made sure this extra workload wouldn't slow the algorithm down. He precomputed a full table of distances between every pair of points so the algorithm could look up a distance instantly instead of recalculating it over and over; he made it calculate each candidate route's quality once per generation and reuse that result, instead of recalculating the same thing multiple times during selection; and he replaced a slow list-scanning check in the route-building step with a much faster set-based lookup. The net effect is that the algorithm now searches harder and produces better routes without taking noticeably longer to do it.
+## 4. The Algorithm Comparison Feature
 
-Alongside this, he expanded the dataset used by the system, giving the algorithms a larger and more realistic problem to solve, and removed a temporary file that was no longer needed.
+I designed and implemented an entirely new feature: running both algorithms on the same problem and comparing them directly, instead of running them one at a time by hand.
 
-## Writing the project's documentation
+- On the interface side, I added a **side-by-side comparison view** with two separate maps — one for Gurobi, one for the Genetic Algorithm — each labeled and color-coded, with a detailed report underneath.
+- On the server side, I built the mechanism that runs both solvers and returns their results together, then wrote the client logic that draws both routes and builds a **detailed comparison report**: total operation time, number of truck stops, total distance, packages delivered, drone-type split, which algorithm performed better, and by how much.
 
-Finally, Meriç wrote two substantial documentation files for the project, both explaining things that weren't written down anywhere before.
+## 5. The Batch Comparison and Statistical Benchmarking System
 
-The first is a changelog-style document that records everything that went into the comparison feature: the side-by-side mode, the batch/averaged mode, the bilingual support added to the reports, a couple of bugs that were found and fixed along the way (including a confusing message that said the winning algorithm was "slower," which he corrected), the Genetic Algorithm tuning work described above, the dataset update, and an important practical warning about Gurobi's license limitations — that the size of the mathematical model it has to solve grows quickly with the number of customers, and a limited license will refuse to solve problems past a certain size.
+Because the Genetic Algorithm involves randomness, a single run can be misleading. So I built a second, more rigorous comparison mode: **running both algorithms a chosen number of times and averaging the results.**
 
-The second is a much larger, end-to-end explainer document that walks through the entire project from scratch, written so that it can be understood by someone with no technical background as well as by someone who wants to read the code. It explains what kind of problem the system solves and why it's hard, how the three layers of the application fit together, how the solving process works step by step (finding a visiting order, splitting the work between the truck and drones while respecting battery limits, and finding the fastest overall plan), how each of the two algorithms works internally, how the comparison feature works and how to interpret its numbers correctly, and an honest discussion of the system's limitations — including why the "exact" algorithm doesn't always come out ahead in the final comparison, and why that's expected rather than a bug. He also updated the README to introduce and link to this new document so that anyone arriving at the project has a clear starting point for understanding it.
+- I added a **background job system**: the server starts the runs in a separate thread, and the interface polls it for progress.
+- I built a **live progress modal** showing a "run X of N" counter, which algorithm is currently running, and an animated progress bar.
+- I made sure all statistics are based on **real, measured data**: I used actual process-level CPU-time measurements and wall-clock timers to record, for every run, how much processor time and real time each algorithm consumed and the quality of its solution. From these I computed averages, minimums, maximums, standard deviations, and how many runs each algorithm "won" — giving an honest, statistically grounded comparison.
 
-## In short
+## 6. Updates Inside the Core Engine (for UI compatibility)
 
-Meriç took the project from a pair of disconnected research scripts to a complete, working, documented web application: he built the server and the original interface, designed and implemented the entire algorithm-comparison feature (from the simple side-by-side view to a statistically rigorous batch-benchmarking system with real CPU and timing measurements), improved the Genetic Algorithm's quality and efficiency at the same time, fixed practical bugs along the way, and wrote the documentation that explains how all of it works and why it was built the way it was.
+While integrating everything, I made several adjustments inside Kudret's core engine so it would run reliably with the web layer:
+
+- I fixed a **Windows encoding bug**: the original scripts printed emoji and Turkish accented characters directly to the console, which crashed or garbled the output on Windows terminals. I replaced these with plain-text equivalents so the backend runs reliably.
+- I **tuned and optimized the Genetic Algorithm**: I increased its population (150 → 250) and generations (400 → 800) for better solutions, and at the same time made it faster by precomputing a full distance matrix, caching each route's fitness once per generation, and replacing a slow list-scan in route building with a fast set-based lookup — so it searches harder without taking longer.
+- I added new **user-adjustable parameters** that flow from the UI down into the engine: a **launch penalty** (drone loading time added per sortie), and exposed the GA **population size, generations, and crossover rate (0.85)** so they can be changed from the interface.
+- I extended the comparison endpoints to report **real CPU and wall-clock time** for single runs as well, and expanded the dataset used by the system.
+
+## 7. Documentation
+
+I wrote the project's documentation, explaining things that weren't written down anywhere before:
+
+- A full **README** explaining how to install, run, and use the web-based version.
+- A detailed, end-to-end **system explainer** that walks through the entire project — what problem it solves, how the three layers fit together, how the solving pipeline works step by step, how each algorithm works internally, and how to correctly interpret the comparison numbers.
+- A **changelog** documenting the comparison feature, the batch/averaged mode, the bilingual reports, the bug fixes, the GA tuning, and a practical note about Gurobi's license size limits.
+
+## In Short
+
+I took this project from a pair of disconnected research scripts to a complete, working, documented web application. I built the FastAPI backend and the entire user interface, designed and implemented the full algorithm-comparison feature — from the simple side-by-side view to a statistically rigorous batch-benchmarking system with real CPU and timing measurements — improved the Genetic Algorithm's quality and speed, made the core engine compatible with the web layer, and wrote the documentation that explains how it all works.
